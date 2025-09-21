@@ -1,13 +1,19 @@
-# Stage 1
-FROM gradle:8.14.3-jdk21-alpine AS build
-COPY --chown=gradle:gradle . /home/gradle/src
-WORKDIR /home/gradle/src
-RUN gradle build --no-daemon -x test
+# STAGE 1
+FROM gradle:jdk21 AS builder
 
-# Stage 2:
-FROM openjdk:21-alpine
+WORKDIR /app
+COPY ./build.gradle .
+COPY ./settings.gradle .
+COPY ./src ./src
+
+RUN gradle build --no-daemon
+
+# STAGE 2
+FROM openjdk:21-jdk-slim
+
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar discografia-1.jar
+
 EXPOSE 8080
-RUN mkdir /app
-COPY --from=build /home/gradle/src/build/libs/discografia-1.jar /app/spring-boot-application.jar
 
-ENTRYPOINT ["java", "-jar", "/app/spring-boot-application.jar"]
+ENTRYPOINT ["java", "-jar", "discografia-1.jar"]
